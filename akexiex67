@@ -1,0 +1,205 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+
+-- 1. สร้าง ScreenGui & Main Frame
+local screenGui = script.Parent
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "DriveMenu"
+mainFrame.Size = UDim2.new(0, 260, 0, 220)
+mainFrame.Position = UDim2.new(0.5, -130, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = mainFrame
+
+-- Top Bar (สำหรับลากเมนู + ปุ่มย่อ)
+local topBar = Instance.new("Frame")
+topBar.Name = "TopBar"
+topBar.Size = UDim2.new(1, 0, 0, 35)
+topBar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+topBar.Parent = mainFrame
+
+local topCorner = Instance.new("UICorner")
+topCorner.CornerRadius = UDim.new(0, 10)
+topCorner.Parent = topBar
+
+local title = Instance.new("TextLabel")
+title.Text = "🚗 Drive Simulator Menu"
+title.Size = UDim2.new(1, -40, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+-- Container สำหรับใส่ปุ่มต่างๆ (ใช้ซ่อนตอนย่อเมนู)
+local contentContainer = Instance.new("Frame")
+contentContainer.Name = "Content"
+contentContainer.Size = UDim2.new(1, -20, 1, -45)
+contentContainer.Position = UDim2.new(0, 10, 0, 40)
+contentContainer.BackgroundTransparency = 1
+contentContainer.Parent = mainFrame
+
+-- 2. ระบบย่อ / ขยาย เมนู
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Text = "-"
+toggleBtn.Size = UDim2.new(0, 25, 0, 25)
+toggleBtn.Position = UDim2.new(1, -30, 0, 5)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.TextSize = 18
+toggleBtn.Parent = topBar
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 6)
+btnCorner.Parent = toggleBtn
+
+local isMinimized = false
+toggleBtn.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	if isMinimized then
+		contentContainer.Visible = false
+		mainFrame:TweenSize(UDim2.new(0, 260, 0, 35), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.3, true)
+		toggleBtn.Text = "+"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 60)
+	else
+		mainFrame:TweenSize(UDim2.new(0, 260, 0, 220), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.3, true, function()
+			contentContainer.Visible = true
+		end)
+		toggleBtn.Text = "-"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+	end
+end)
+
+-- 3. ช่องใส่ความเร็ว (1 - 300)
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Text = "ความเร็วรถ (1 - 300):"
+speedLabel.Size = UDim2.new(1, 0, 0, 20)
+speedLabel.Position = UDim2.new(0, 0, 0, 5)
+speedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Font = Enum.Font.SourceSans
+speedLabel.TextSize = 14
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = contentContainer
+
+local speedInput = Instance.new("TextBox")
+speedInput.PlaceholderText = "ใส่ตัวเลข 1-300"
+speedInput.Size = UDim2.new(1, 0, 0, 30)
+speedInput.Position = UDim2.new(0, 0, 0, 30)
+speedInput.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+speedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedInput.Font = Enum.Font.SourceSans
+speedInput.TextSize = 16
+speedInput.Parent = contentContainer
+
+local applySpeedBtn = Instance.new("TextButton")
+applySpeedBtn.Text = "ปรับความเร็ว"
+applySpeedBtn.Size = UDim2.new(1, 0, 0, 30)
+applySpeedBtn.Position = UDim2.new(0, 0, 0, 65)
+applySpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+applySpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+applySpeedBtn.Font = Enum.Font.SourceSansBold
+applySpeedBtn.TextSize = 15
+applySpeedBtn.Parent = contentContainer
+
+-- ฟังก์ชันปรับความเร็วรถ
+applySpeedBtn.MouseButton1Click:Connect(function()
+	local num = tonumber(speedInput.Text)
+	if num then
+		num = math.clamp(num, 1, 300) -- จำกัดช่วง 1-300
+		speedInput.Text = tostring(num)
+		
+		local character = player.Character
+		if character and character:FindFirstChild("Humanoid") then
+			local seat = character.Humanoid.SeatPart
+			if seat and seat:IsA("VehicleSeat") then
+				seat.MaxSpeed = num
+				print("ปรับความเร็วรถเป็น: " .. num)
+			else
+				warn("คุณต้องนั่งอยู่บนเบาะขับรถก่อน!")
+			end
+		end
+	end
+end)
+
+-- 4. ปุ่มถอดกราบ / ชุดเกราะรถ
+local removePartsBtn = Instance.new("TextButton")
+removePartsBtn.Text = "🛠️ ถอดกราบ / ชิ้นส่วนรถ"
+removePartsBtn.Size = UDim2.new(1, 0, 0, 35)
+removePartsBtn.Position = UDim2.new(0, 0, 0, 115)
+removePartsBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 0)
+removePartsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+removePartsBtn.Font = Enum.Font.SourceSansBold
+removePartsBtn.TextSize = 15
+removePartsBtn.Parent = contentContainer
+
+removePartsBtn.MouseButton1Click:Connect(function()
+	local character = player.Character
+	if character and character:FindFirstChild("Humanoid") then
+		local seat = character.Humanoid.SeatPart
+		if seat and seat:IsA("VehicleSeat") then
+			local vehicle = seat:FindFirstAncestorOfClass("Model")
+			if vehicle then
+				-- คำค้นหาชิ้นส่วนที่จะถูกถอดออก (กราบ, ชุดแต่ง, กันชน ฯลฯ)
+				local partsToRemove = {"BodyKit", "Armor", "Bumper", "Spoiler", "Skirt", "Fender", "Decoration", "กราบ"}
+				
+				for _, child in pairs(vehicle:GetDescendants()) do
+					for _, name in pairs(partsToRemove) do
+						if string.find(string.lower(child.Name), string.lower(name)) then
+							child:Destroy()
+						end
+					end
+				end
+				print("ถอดชิ้นส่วนรถเรียบร้อยแล้ว!")
+			end
+		else
+			warn("คุณต้องนั่งอยู่บนรถเพื่อถอดชิ้นส่วน!")
+		end
+	end
+end)
+
+-- 5. ระบบขยับ/ลากเมนู (Draggable System)
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+topBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+topBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
